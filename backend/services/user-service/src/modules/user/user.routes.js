@@ -16,5 +16,4 @@ router.put("/:id", authenticate, authorize("ADMIN"), userController.update);
 router.delete("/:id", authenticate, authorize("ADMIN"), userController.delete);
 
 
-
 export default router;
