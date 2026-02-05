@@ -68,4 +68,25 @@ getByEmail = async (req, res, next) => {
       next(err);
     }
   };
+
+  forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const response = await this.userService.forgotPassword(email);
+    res.success(response.message);
+  } catch (err) {
+    next(err);
+  }
+};
+
+resetPassword = async (req, res, next) => {
+  try {
+    const { token, newPassword } = req.body;
+    const response = await this.userService.resetPassword(token, newPassword);
+    res.success(response.message);
+  } catch (err) {
+    next(err);
+  }
+};
+
 }

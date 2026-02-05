@@ -68,6 +68,52 @@ async login({ email, password }) {
   }
 }
 
+async forgotPassword(email) {
+  try {
+    const { data } = await axios.post(
+      `${process.env.USER_SERVICE_URL}/api/v1/user/forgot-password`,
+      { email },
+      {
+        headers: {
+          "x-internal-secret": process.env.INTERNAL_SERVICE_SECRET,
+        },
+      }
+    );
+
+    return data;
+  } catch (error) {
+    if (error.response) {
+      const err = new Error(error.response.data.message);
+      err.statusCode = error.response.status;
+      throw err;
+    }
+    throw error;
+  }
+}
+
+async resetPassword(token, newPassword) {
+  try {
+    const { data } = await axios.post(
+      `${process.env.USER_SERVICE_URL}/api/v1/user/reset-password`,
+      { token, newPassword },
+      {
+        headers: {
+          "x-internal-secret": process.env.INTERNAL_SERVICE_SECRET,
+        },
+      }
+    );
+
+    return data;
+  } catch (error) {
+    if (error.response) {
+      const err = new Error(error.response.data.message);
+      err.statusCode = error.response.status;
+      throw err;
+    }
+    throw error;
+  }
+}
+
 }
 
 export default new AuthService();
