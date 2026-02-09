@@ -89,4 +89,13 @@ resetPassword = async (req, res, next) => {
   }
 };
 
+googleLogin = async (req, res, next) => {
+  try {
+    const user = await this.userService.googleLogin(req.body);
+    res.success("User authenticated", user);
+  } catch (err) {
+    next(err);
+  }
+};
+
 }

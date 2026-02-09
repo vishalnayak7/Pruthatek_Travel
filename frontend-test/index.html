@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Sign in with Google</title>
+
+    <!-- Google Identity -->
+    <script
+      src="https://accounts.google.com/gsi/client"
+      async
+      defer
+    ></script>
+
+    <!-- Google Font -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      * {
+        box-sizing: border-box;
+        font-family: "Inter", sans-serif;
+      }
+
+      body {
+        margin: 0;
+        height: 100vh;
+        background: linear-gradient(135deg, #eef2ff, #f8fafc);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .login-card {
+        background: #ffffff;
+        width: 380px;
+        padding: 32px;
+        border-radius: 14px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+        text-align: center;
+      }
+
+      .login-card h2 {
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #111827;
+      }
+
+      .login-card p {
+        margin-bottom: 24px;
+        color: #6b7280;
+        font-size: 14px;
+      }
+
+      .divider {
+        display: flex;
+        align-items: center;
+        margin: 20px 0;
+        color: #9ca3af;
+        font-size: 12px;
+      }
+
+      .divider::before,
+      .divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: #e5e7eb;
+      }
+
+      .divider span {
+        margin: 0 10px;
+      }
+
+      .success-message {
+        margin-top: 16px;
+        padding: 12px;
+        border-radius: 8px;
+        background: #ecfdf5;
+        color: #065f46;
+        font-size: 14px;
+        display: none;
+      }
+
+      .footer-text {
+        margin-top: 20px;
+        font-size: 12px;
+        color: #9ca3af;
+      }
+
+      .footer-text a {
+        color: #2563eb;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="login-card">
+      <h2>Welcome back 👋</h2>
+      <p>Sign in to continue to your account</p>
+
+      <!-- Google config -->
+      <div
+        id="g_id_onload"
+        data-client_id="127986271188-b8crqo7h6a7lcj4vntm32bqhps7ba7ja.apps.googleusercontent.com"
+        data-callback="handleCredentialResponse"
+      ></div>
+
+      <!-- Google button -->
+      <div class="g_id_signin" data-size="large" data-width="300"></div>
+
+      <!-- Success message -->
+      <div id="successMessage" class="success-message"></div>
+
+      <div class="divider">
+        <span>Secure login</span>
+      </div>
+
+      <div class="footer-text">
+        By continuing, you agree to our
+        <a href="#">Terms</a> & <a href="#">Privacy Policy</a>
+      </div>
+    </div>
+
+    <script>
+      async function handleCredentialResponse(response) {
+        const idToken = response.credential;
+
+        try {
+          const res = await fetch("http://localhost:3001/api/v1/auth/google", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ idToken }),
+          });
+
+          const data = await res.json();
+
+          if (!data.success) {
+            alert("Login failed");
+            return;
+          }
+
+          // Store JWT (for future API calls)
+          localStorage.setItem("auth_token", data.data.token);
+
+          // Show success message
+          const successBox = document.getElementById("successMessage");
+          successBox.innerHTML = "✅ Signed in successfully with Google!";
+          successBox.style.display = "block";
+
+          // Hide Google button
+          document.querySelector(".g_id_signin").style.display = "none";
+
+          console.log("JWT:", data.data.token);
+        } catch (error) {
+          console.error(error);
+          alert("Something went wrong. Please try again.");
+        }
+      }
+    </script>
+  </body>
+</html>

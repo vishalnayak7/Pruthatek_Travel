@@ -48,4 +48,14 @@ resetPassword = async (req, res, next) => {
   }
 };
 
+googleLogin = async (req, res, next) => {
+  try {
+    const { idToken } = req.body;
+    const result = await this.authService.googleLogin(idToken);
+    res.success("Google login successful", result);
+  } catch (err) {
+    next(err);
+  }
+};
+
 }

@@ -39,16 +39,24 @@ class UserService {
     return USER_MODEL.findByIdAndDelete(id);
   }
 
-  async forgotPassword(email) {
+   async forgotPassword(email) {
     const user = await USER_MODEL.findOne({ email });
     if (!user) throw new Error("User with this email does not exist");
+
+    if (user.provider === "google") {
+    const err = new Error(
+      "Password reset is not allowed for Google sign-in accounts"
+    );
+    err.statusCode = 400;
+    throw err;
+  }
 
     // Generate reset token
     const resetToken = crypto.randomBytes(32).toString("hex");
     const resetTokenHash = crypto.createHash("sha256").update(resetToken).digest("hex");
 
     user.resetPasswordToken = resetTokenHash;
-    user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
+    user.resetPasswordExpires = Date.now() + 15 * 60 * 1000; 
     await user.save();
 
     // Send email
@@ -92,6 +100,32 @@ class UserService {
 
     return { message: "Password reset successful" };
   }
+
+  async googleLogin({ email, name, googleId }) {
+  let user = await USER_MODEL.findOne({ email });
+
+  // First-time Google user → create account
+  if (!user) {
+    user = await USER_MODEL.create({
+      name,
+      email,
+      googleId,
+      provider: "google",
+      role: "USER",
+    });
+  }
+
+  // Existing local user → link Google account
+  else if (user.provider === "local" && !user.googleId) {
+    user.googleId = googleId;
+    user.provider = "google";
+    await user.save();
+  }
+
+  // Existing Google user → just return
+  return user;
+}
+
 }
 
 export default new UserService();
