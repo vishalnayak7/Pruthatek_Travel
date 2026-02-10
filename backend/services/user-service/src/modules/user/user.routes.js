@@ -15,9 +15,6 @@ router.get("/:id", authenticate, authorize("ADMIN"), userController.getById);
 router.put("/:id", authenticate, authorize("ADMIN"), userController.update);
 router.delete("/:id", authenticate, authorize("ADMIN"), userController.delete);
 
-router.post("/forgot-password", internalAuth, userController.forgotPassword);  // INTERNAL (auth-service)
-router.post("/reset-password", internalAuth, userController.resetPassword);  // INTERNAL (auth-service)
-
 router.post("/google-login", internalAuth,userController.googleLogin);  // INTERNAL (auth-service)
 
 export default router;
