@@ -47,32 +47,28 @@ getByEmail = async (req, res, next) => {
     }
   };
 
-  update = async (req, res, next) => {
-    try {
-      const user = await this.userService.update(req.params.id, req.body);
-      if (!user) return res.fail("User not found", statusCode.NOT_FOUND);
-
-      res.success("User updated successfully", user);
-    } catch (err) {
-      next(err);
-    }
-  };
-
-  delete = async (req, res, next) => {
-    try {
-      const user = await this.userService.delete(req.params.id);
-      if (!user) return res.fail("User not found", statusCode.NOT_FOUND);
-
-      res.success("User deleted successfully");
-    } catch (err) {
-      next(err);
-    }
-  };
-
-googleLogin = async (req, res, next) => {
+  updateOtpStatus = async (req, res, next) => {
   try {
-    const user = await this.userService.googleLogin(req.body);
-    res.success("User authenticated", user);
+    const user = await this.userService.updateOtpStatus(req.body);
+    res.success("OTP status updated", user);
+  } catch (err) {
+    next(err);
+  }
+};
+
+setPassword = async (req, res, next) => {
+  try {
+    const user = await this.userService.setPassword(req.body);
+    res.success("Password saved", user);
+  } catch (err) {
+    next(err);
+  }
+};
+
+updateOtp = async (req, res, next) => {
+  try {
+    const user = await this.userService.updateOtp(req.body);
+    res.success("OTP updated", user);
   } catch (err) {
     next(err);
   }

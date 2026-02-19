@@ -1,16 +1,24 @@
 import mongoose from "mongoose";
 
-const userSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true },
-    password: { type: String, select: false },
-    role: { type: String, enum: ["USER", "ADMIN"], default: "USER"},
+const userSchema = new mongoose.Schema({
+  email: { type: String, required: true, unique: true },
+  phone: { type: String, required: true },
 
-    googleId: { type: String, unique: true, sparse: true },
-    provider: { type: String, enum: ["local", "google"], default: "local"}
-    
-  },
-  { timestamps: true });
+  password: { type: String, select: false },
+
+  emailVerified: { type: Boolean, default: false },
+  phoneVerified: { type: Boolean, default: false },
+
+  emailOtpHash: String,
+  phoneOtpHash: String,
+
+  otpExpiry: Date,
+
+  status: {
+    type: String,
+    enum: ["PENDING_VERIFICATION", "OTP_VERIFIED", "ACTIVE"],
+    default: "PENDING_VERIFICATION"
+  }
+}, { timestamps: true });
 
 export const USER_MODEL = mongoose.model("user", userSchema);

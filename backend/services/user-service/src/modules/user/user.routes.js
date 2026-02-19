@@ -10,11 +10,9 @@ const userController = new UserController();
 router.post("/create", internalAuth, userController.create);  // create (used only by auth-service)
 router.get("/email/:email", internalAuth, userController.getByEmail);  // INTERNAL (auth-service)
 
-router.get("/", authenticate, authorize("ADMIN"), userController.getAll);
-router.get("/:id", authenticate, authorize("ADMIN"), userController.getById);
-router.put("/:id", authenticate, authorize("ADMIN"), userController.update);
-router.delete("/:id", authenticate, authorize("ADMIN"), userController.delete);
-
-router.post("/google-login", internalAuth,userController.googleLogin);  // INTERNAL (auth-service)
+router.get("/", userController.getAll);
+router.patch("/update-otp-status", internalAuth, userController.updateOtpStatus);
+router.patch( "/set-password", internalAuth, userController.setPassword);
+router.patch("/update-otp", internalAuth, userController.updateOtp);
 
 export default router;

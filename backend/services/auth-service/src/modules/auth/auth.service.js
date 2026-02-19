@@ -2,149 +2,261 @@ import axios from "axios";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
+import { generateOtp } from "../../utils/otp.js";
+import { sendEmailOtp } from "../../utils/email.js";
+import { sendSmsOtp } from "../../utils/sms.js";
+import crypto from "crypto";
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const hashOtp = (otp) =>
+  crypto.createHash("sha256").update(otp).digest("hex");
 
 class AuthService {
 
-  async signup({ name, email, password, role }) {
-    try {
-      await axios.get(
-        `${process.env.USER_SERVICE_URL}/api/v1/user/email/${email}`,
-        {
-          headers: {
-            "x-internal-secret": process.env.INTERNAL_SERVICE_SECRET
-          }
-        });
-      const err = new Error("User already exists");
-      err.statusCode = 409;
-      throw err;
-    } catch (error) {
-      if (error.response?.status !== 404) throw error;
+async signup({ email, phone }) {
+  const internalHeaders = {
+    headers: {
+      "x-internal-secret": process.env.INTERNAL_SERVICE_SECRET
     }
+  };
 
+  const existingUser = await axios.get(
+    `${process.env.USER_SERVICE_URL}/api/v1/user/email/${email}`,
+    internalHeaders
+  ).catch(() => null);
 
-    let data;
-    try {
-      const response = await axios.post(
-        `${process.env.USER_SERVICE_URL}/api/v1/user/create`,
-        {
-          name,
-          email,
-          password,
-          role
-        },
-        {
-          headers: {
-            "x-internal-secret": process.env.INTERNAL_SERVICE_SECRET
-          }
-        }
-      );
-      data = response.data;
-    } catch (error) {
-      console.error("Error creating user in user-service:", error.message, error.response?.data);
-      if (error.response?.data?.message) {
-        const newError = new Error(error.response.data.message);
-        newError.statusCode = error.response.status;
-        throw newError;
-      }
-      throw error;
-    }
-
-    return {
-      id: data.data._id,
-      name: data.data.name,
-      email: data.data.email,
-      role: data.data.role
-    };
+  if (existingUser?.data?.data) {
+    const err = new Error("Email already exists");
+    err.statusCode = 409;
+    throw err;
   }
 
-  async login({ email, password }) {
-    try {
-      // Get user by email
-      const { data } = await axios.get(
-        `${process.env.USER_SERVICE_URL}/api/v1/user/email/${email}`,
-        {
-          headers: {
-            "x-internal-secret": process.env.INTERNAL_SERVICE_SECRET
-          }
-        });
+  const { otp: emailOtp, hash: emailHash } = generateOtp();
+  const { otp: phoneOtp, hash: phoneHash } = generateOtp();
 
-      const user = data.data;
+  await axios.post(
+    `${process.env.USER_SERVICE_URL}/api/v1/user/create`,
+    {
+      email,
+      phone,
+      emailOtpHash: emailHash,
+      phoneOtpHash: phoneHash,
+      // otpExpiry: Date.now() + 10 * 60 * 1000,
+      otpExpiry: new Date(Date.now() + 10 * 60 * 1000),
+      status: "PENDING_VERIFICATION"
+    },
+    internalHeaders
+  );
 
-      // Block Google accounts from password login
-      if (user.provider === "google") {
-        const err = new Error("Please login using Google");
-        err.statusCode = 400;
-        throw err;
-      }
+  await sendEmailOtp(email, emailOtp);
+  await sendSmsOtp(phone, phoneOtp);
 
-      // ensure password exists
-      if (!user.password) {
-        const err = new Error("Invalid credentials");
-        err.statusCode = 401;
-        throw err;
-      }
+  return { message: "OTP sent" };
+}
 
-      const isMatch = await bcrypt.compare(password, user.password);
-
-      if (!isMatch) {
-        const err = new Error("Invalid credentials");
-        err.statusCode = 401;
-        throw err;
-      }
-
-      const token = jwt.sign(
-        { id: user._id, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: "1d" }
-      );
-
-      return { token };
-    } catch (error) {
-      if (error.response?.status === 404 || error.statusCode === 401) {
-        const err = new Error("Invalid credentials");
-        err.statusCode = 401;
-        throw err;
-      }
-      throw error;
+async verifyOtp({ email, emailOtp, phoneOtp }) {
+  const internalHeaders = {
+    headers: {
+      "x-internal-secret": process.env.INTERNAL_SERVICE_SECRET
     }
+  };
+
+  const { data } = await axios.get(
+    `${process.env.USER_SERVICE_URL}/api/v1/user/email/${email}`,
+    internalHeaders
+  );
+
+  const user = data.data;
+
+  if (!user) throw Object.assign(new Error("User not found"), { statusCode: 404 });
+
+  if (user.emailVerified && user.phoneVerified) {
+    return { message: "OTP already verified" };
   }
 
-  async googleLogin(idToken) {
-    try {
-      const ticket = await client.verifyIdToken({
-        idToken,
-        audience: process.env.GOOGLE_CLIENT_ID,
-      });
-
-      const payload = ticket.getPayload();
-      const { email, name, sub: googleId } = payload;
-
-      const { data } = await axios.post(
-        `${process.env.USER_SERVICE_URL}/api/v1/user/google-login`,
-        { email, name, googleId },
-        { headers: { "x-internal-secret": process.env.INTERNAL_SERVICE_SECRET } }
-      );
-
-      const user = data.data;
-
-      const token = jwt.sign(
-        { id: user._id, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: "1d" }
-      );
-
-      return { token };
-    } catch (err) {
-      console.error("Google login failed:", err.message);
-      err.statusCode = 401;
-      throw err;
-    }
+  if (!emailOtp && !phoneOtp) {
+    throw Object.assign(new Error("At least one OTP required"), { statusCode: 400 });
   }
 
+  if (user.otpExpiry && Date.now() > new Date(user.otpExpiry).getTime()) {
+    throw Object.assign(new Error("OTP expired"), { statusCode: 400 });
+  }
+
+  let emailVerified = user.emailVerified;
+  let phoneVerified = user.phoneVerified;
+
+  if (!emailVerified && emailOtp) {
+    if (hashOtp(emailOtp) !== user.emailOtpHash) {
+      throw Object.assign(new Error("Invalid email OTP"), { statusCode: 400 });
+    }
+    emailVerified = true;
+  }
+
+  if (!phoneVerified && phoneOtp) {
+    if (hashOtp(phoneOtp) !== user.phoneOtpHash) {
+      throw Object.assign(new Error("Invalid phone OTP"), { statusCode: 400 });
+    }
+    phoneVerified = true;
+  }
+
+  const status =
+    emailVerified && phoneVerified
+      ? "OTP_VERIFIED"
+      : "PENDING_VERIFICATION";
+
+  await axios.patch(
+    `${process.env.USER_SERVICE_URL}/api/v1/user/update-otp-status`,
+    { email, emailVerified, phoneVerified, status },
+    internalHeaders
+  );
+
+  return {
+    message:
+      status === "OTP_VERIFIED"
+        ? "Both OTPs verified"
+        : "Partially verified"
+  };
+}
+
+async setPassword({ email, password }) {
+  const internalHeaders = {
+    headers: {
+      "x-internal-secret": process.env.INTERNAL_SERVICE_SECRET
+    }
+  };
+
+  const { data } = await axios.get(
+    `${process.env.USER_SERVICE_URL}/api/v1/user/email/${email}`,
+    internalHeaders
+  );
+
+  const user = data.data;
+
+  if (!user) {
+    const err = new Error("User not found");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (user.status === "ACTIVE") {
+    return { message: "Password already set" };
+  }
+
+  if (user.status !== "OTP_VERIFIED") {
+    const err = new Error("OTP not verified");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  await axios.patch(
+    `${process.env.USER_SERVICE_URL}/api/v1/user/set-password`,
+    {
+      email,
+      password: hashedPassword,
+      status: "ACTIVE"
+    },
+    internalHeaders
+  );
+
+  return { message: "Password set successfully. Account activated." };
+}
+
+async login({ email, password }) {
+  const internalHeaders = {
+    headers: {
+      "x-internal-secret": process.env.INTERNAL_SERVICE_SECRET
+    }
+  };
+
+  const { data } = await axios.get(
+    `${process.env.USER_SERVICE_URL}/api/v1/user/email/${email}`,
+    internalHeaders
+  );
+
+  const user = data.data;
+
+  if (!user || !user.password) {
+    const err = new Error("Invalid credentials");
+    err.statusCode = 401;
+    throw err;
+  }
+
+  if (user.status !== "ACTIVE") {
+    const err = new Error("Account not activated");
+    err.statusCode = 403;
+    throw err;
+  }
+
+  const isMatch = await bcrypt.compare(password, user.password);
+
+  if (!isMatch) {
+    const err = new Error("Invalid credentials");
+    err.statusCode = 401;
+    throw err;
+  }
+
+  const token = jwt.sign(
+    { id: user._id },
+    process.env.JWT_SECRET,
+    { expiresIn: "1d" }
+  );
+
+  return { token };
+}
+
+async resendOtp({ email, type }) {
+
+  const internalHeaders = {
+    headers: {
+      "x-internal-secret": process.env.INTERNAL_SERVICE_SECRET
+    }
+  };
+
+  const { data } = await axios.get(
+    `${process.env.USER_SERVICE_URL}/api/v1/user/email/${email}`,
+    internalHeaders
+  );
+
+  const user = data.data;
+
+  if (!user) {
+    const err = new Error("User not found");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (user.status === "ACTIVE") {
+    throw new Error("Account already active");
+  }
+
+  let updatePayload = {};
+
+  if ((type === "email" || type === "both") && !user.emailVerified) {
+    const { otp, hash } = generateOtp();
+    await sendEmailOtp(email, otp);
+    updatePayload.emailOtpHash = hash;
+  }
+
+  if ((type === "phone" || type === "both") && !user.phoneVerified) {
+    const { otp, hash } = generateOtp();
+    await sendSmsOtp(user.phone, otp);
+    updatePayload.phoneOtpHash = hash;
+  }
+
+  updatePayload.otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+
+  await axios.patch(
+    `${process.env.USER_SERVICE_URL}/api/v1/user/update-otp`,
+    {
+      email,
+      ...updatePayload
+    },
+    internalHeaders
+  );
+
+  return { message: "OTP resent successfully" };
+}
 
 }
 
 export default new AuthService();
-

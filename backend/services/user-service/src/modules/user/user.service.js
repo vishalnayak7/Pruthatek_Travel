@@ -1,14 +1,8 @@
-import bcrypt from "bcryptjs";
 import { USER_MODEL } from "./user.model.js"; 
-import crypto from "crypto";
-import nodemailer from "nodemailer";
 
 class UserService {
 
   async create(data) {
-  if (data.password) {
-    data.password = await bcrypt.hash(data.password, 10);
-  }
   return USER_MODEL.create(data);
 }
 
@@ -24,43 +18,64 @@ class UserService {
     return USER_MODEL.findOne({ email }).select("+password");
   }
 
-  async update(id, data) {
-    if (data.password) {
-      data.password = await bcrypt.hash(data.password, 10);
-    }
+async verifyOtp(email) {
+  const user = await USER_MODEL.findOneAndUpdate(
+    { email },
+    {
+      emailVerified: true,
+      phoneVerified: true,
+      status: "OTP_VERIFIED",
+      emailOtpHash: null,
+      phoneOtpHash: null,
+      otpExpiry: null
+    },
+    { new: true }
+  );
 
-    return USER_MODEL.findByIdAndUpdate(id, data, {
-      new: true,
-      runValidators: true
-    }).select("-password");
-  }
-
-  async delete(id) {
-    return USER_MODEL.findByIdAndDelete(id);
-  }
-
-  async googleLogin({ email, name, googleId }) {
-  let user = await USER_MODEL.findOne({ email });
-
-  // First-time Google user → create account
-  if (!user) {
-    user = await USER_MODEL.create({
-      name,
-      email,
-      googleId,
-      provider: "google",
-      role: "USER",
-    });
-  }
-
-  // Existing local user → link Google account
-  else if (user.provider === "local" && !user.googleId) {
-    user.googleId = googleId;
-    user.provider = "google";
-    await user.save();
-  }
-  
   return user;
+}
+
+async updateOtpStatus({ email, emailVerified, phoneVerified, status }) {
+  return USER_MODEL.findOneAndUpdate(
+    { email },
+    {
+      emailVerified,
+      phoneVerified,
+      status,
+      ...(status === "OTP_VERIFIED" && {
+        emailOtpHash: null,
+        phoneOtpHash: null,
+        otpExpiry: null
+      })
+    },
+    { new: true }
+  );
+}
+
+async setPassword({ email, password, status }) {
+  return USER_MODEL.findOneAndUpdate(
+    { email },
+    {
+      password,
+      status,
+      emailOtpHash: null,
+      phoneOtpHash: null,
+      otpExpiry: null
+    },
+    { new: true }
+  );
+}
+
+async updateOtp({ email, emailOtpHash, phoneOtpHash, otpExpiry }) {
+  return USER_MODEL.findOneAndUpdate(
+    { email },
+    {
+      ...(emailOtpHash && { emailOtpHash }),
+      ...(phoneOtpHash && { phoneOtpHash }),
+      otpExpiry
+    },
+    { new: true }
+  );
 }
 
 }
