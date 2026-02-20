@@ -168,12 +168,25 @@ async login({ email, password }) {
     }
   };
 
-  const { data } = await axios.get(
-    `${process.env.USER_SERVICE_URL}/api/v1/user/email/${email}`,
-    internalHeaders
-  );
+  let user;
 
-  const user = data.data;
+  try {
+    const { data } = await axios.get(
+      `${process.env.USER_SERVICE_URL}/api/v1/user/email/${email}`,
+      internalHeaders
+    );
+
+    user = data.data;
+
+  } catch (error) {
+    if (error.response?.status === 404) {
+      const err = new Error("User not found");
+      err.statusCode = 404;
+      throw err;
+    }
+
+    throw error; // unknown error
+  }
 
   if (!user || !user.password) {
     const err = new Error("Invalid credentials");
