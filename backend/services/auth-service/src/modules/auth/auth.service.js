@@ -60,14 +60,15 @@ async verifyOtp({ email, emailOtp, phoneOtp }) {
     }
   };
 
-  const { data } = await axios.get(
-    `${process.env.USER_SERVICE_URL}/api/v1/user/email/${email}`,
-    internalHeaders
-  );
-
-  const user = data.data;
-
-  if (!user) throw Object.assign(new Error("User not found"), { statusCode: 404 });
+  const user = await axios
+  .get(`${process.env.USER_SERVICE_URL}/api/v1/user/email/${email}`, internalHeaders)
+  .then(res => res.data.data)
+  .catch(err => {
+    if (err.response?.status === 404) {
+      throw Object.assign(new Error("User not found"), { statusCode: 404 });
+    }
+    throw err;
+  });
 
   if (user.emailVerified && user.phoneVerified) {
     return { message: "OTP already verified" };
@@ -124,18 +125,15 @@ async setPassword({ email, password }) {
     }
   };
 
-  const { data } = await axios.get(
-    `${process.env.USER_SERVICE_URL}/api/v1/user/email/${email}`,
-    internalHeaders
-  );
-
-  const user = data.data;
-
-  if (!user) {
-    const err = new Error("User not found");
-    err.statusCode = 404;
+  const user = await axios
+  .get(`${process.env.USER_SERVICE_URL}/api/v1/user/email/${email}`, internalHeaders)
+  .then(res => res.data.data)
+  .catch(err => {
+    if (err.response?.status === 404) {
+      throw Object.assign(new Error("User not found"), { statusCode: 404 });
+    }
     throw err;
-  }
+  });
 
   if (user.status === "ACTIVE") {
     return { message: "Password already set" };
@@ -185,20 +183,31 @@ async login({ email, password }) {
       throw err;
     }
 
-    throw error; // unknown error
+    throw error; 
   }
 
-  if (!user || !user.password) {
-    const err = new Error("Invalid credentials");
-    err.statusCode = 401;
-    throw err;
-  }
+  // if (!user || !user.password) {
+  //   const err = new Error("Invalid credentials");
+  //   err.statusCode = 401;
+  //   throw err;
+  // }
 
-  if (user.status !== "ACTIVE") {
-    const err = new Error("Account not activated");
-    err.statusCode = 403;
-    throw err;
-  }
+  // if (user.status !== "ACTIVE") {
+  //   const err = new Error("Account not activated");
+  //   err.statusCode = 403;
+  //   throw err;
+  // }
+if (user.status !== "ACTIVE") {
+  const err = new Error("Account not activated");
+  err.statusCode = 403;
+  throw err;
+}
+
+if (!user.password) {
+  const err = new Error("Invalid credentials");
+  err.statusCode = 401;
+  throw err;
+}
 
   const isMatch = await bcrypt.compare(password, user.password);
 
@@ -225,22 +234,33 @@ async resendOtp({ email, type }) {
     }
   };
 
-  const { data } = await axios.get(
-    `${process.env.USER_SERVICE_URL}/api/v1/user/email/${email}`,
-    internalHeaders
-  );
-
-  const user = data.data;
-
-  if (!user) {
-    const err = new Error("User not found");
-    err.statusCode = 404;
+  const user = await axios
+  .get(`${process.env.USER_SERVICE_URL}/api/v1/user/email/${email}`, internalHeaders)
+  .then(res => res.data.data)
+  .catch(err => {
+    if (err.response?.status === 404) {
+      throw Object.assign(new Error("User not found"), { statusCode: 404 });
+    }
     throw err;
-  }
+  });
+
+// if (!user) {
+//   throw Object.assign(new Error("User not found"), { statusCode: 404 });
+// }
 
   if (user.status === "ACTIVE") {
-    throw new Error("Account already active");
-  }
+  throw Object.assign(
+    new Error("Account already active"),
+    { statusCode: 400 }
+  );
+}
+
+if (user.status === "OTP_VERIFIED") {
+  throw Object.assign(
+    new Error("OTP already verified"),
+    { statusCode: 400 }
+  );
+}
 
   let updatePayload = {};
 
