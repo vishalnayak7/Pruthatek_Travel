@@ -15,4 +15,8 @@ router.patch("/update-otp-status", internalAuth, userController.updateOtpStatus)
 router.patch( "/set-password", internalAuth, userController.setPassword);
 router.patch("/update-otp", internalAuth, userController.updateOtp);
 
+router.get("/phone/:phone", internalAuth, userController.getByPhone);
+router.patch("/update-reset-phone-otp", internalAuth, userController.updateResetPhoneOtp);
+router.patch("/reset-password-phone", internalAuth, userController.resetPasswordByPhone);
+
 export default router;

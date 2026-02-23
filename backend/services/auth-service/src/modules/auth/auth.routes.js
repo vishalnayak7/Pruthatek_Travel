@@ -10,4 +10,7 @@ router.post("/set-password", authController.setPassword);
 router.post("/login", authController.login);
 router.post("/resend-otp", authController.resendOtp);
 
+router.post("/forgot-password", authController.forgotPassword);
+router.post("/reset-password", authController.resetPassword);
+
 export default router;

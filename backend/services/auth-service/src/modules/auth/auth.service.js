@@ -290,6 +290,79 @@ if (user.status === "OTP_VERIFIED") {
   return { message: "OTP resent successfully" };
 }
 
+async forgotPassword({ phone }) {
+
+  const internalHeaders = {
+    headers: { "x-internal-secret": process.env.INTERNAL_SERVICE_SECRET }
+  };
+
+  const user = await axios
+    .get(`${process.env.USER_SERVICE_URL}/api/v1/user/phone/${phone}`, internalHeaders)
+    .then(res => res.data.data)
+    .catch(() => {
+      throw Object.assign(new Error("User not found"), { statusCode: 404 });
+    });
+
+  if (user.status !== "ACTIVE") {
+    throw Object.assign(new Error("Account not active"), { statusCode: 400 });
+  }
+
+  const { otp, hash } = generateOtp();
+
+  await axios.patch(
+    `${process.env.USER_SERVICE_URL}/api/v1/user/update-reset-phone-otp`,
+    {
+      phone,
+      hash,
+      expiry: new Date(Date.now() + 10 * 60 * 1000)
+    },
+    internalHeaders
+  );
+
+  await sendSmsOtp(phone, otp);
+
+  return { message: "Reset OTP sent to phone" };
+}
+
+async resetPassword({ phone, otp, newPassword }) {
+
+  const internalHeaders = {
+    headers: { "x-internal-secret": process.env.INTERNAL_SERVICE_SECRET }
+  };
+
+  const user = await axios
+    .get(`${process.env.USER_SERVICE_URL}/api/v1/user/phone/${phone}`, internalHeaders)
+    .then(res => res.data.data)
+    .catch(() => {
+      throw Object.assign(new Error("User not found"), { statusCode: 404 });
+    });
+
+  if (!user.resetPhoneOtpHash) {
+    throw Object.assign(new Error("No reset request found"), { statusCode: 400 });
+  }
+
+  if (!user.resetPhoneOtpExpiry || Date.now() > new Date(user.resetPhoneOtpExpiry).getTime()) {
+    throw Object.assign(new Error("OTP expired"), { statusCode: 400 });
+  }
+
+  if (hashOtp(otp) !== user.resetPhoneOtpHash) {
+    throw Object.assign(new Error("Invalid OTP"), { statusCode: 400 });
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  await axios.patch(
+    `${process.env.USER_SERVICE_URL}/api/v1/user/reset-password-phone`,
+    {
+      phone,
+      password: hashedPassword
+    },
+    internalHeaders
+  );
+
+  return { message: "Password reset successfully" };
+}
+
 }
 
 export default new AuthService();

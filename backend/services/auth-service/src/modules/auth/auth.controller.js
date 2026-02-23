@@ -104,4 +104,46 @@ resendOtp = async (req, res, next) => {
   }
 };
 
+forgotPassword = async (req, res, next) => {
+  try {
+    const { phone } = req.body;
+
+    if (!phone) {
+      return res.status(400).json({
+        message: "Phone is required"
+      });
+    }
+
+    const result = await this.authService.forgotPassword({ phone });
+
+    res.status(200).json(result);
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+resetPassword = async (req, res, next) => {
+  try {
+    const { phone, otp, newPassword } = req.body;
+
+    if (!phone || !otp || !newPassword) {
+      return res.status(400).json({
+        message: "Phone, OTP and new password are required"
+      });
+    }
+
+    const result = await this.authService.resetPassword({
+      phone,
+      otp,
+      newPassword
+    });
+
+    res.status(200).json(result);
+
+  } catch (err) {
+    next(err);
+  }
+};
+
 }

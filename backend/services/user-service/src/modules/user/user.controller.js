@@ -74,4 +74,50 @@ updateOtp = async (req, res, next) => {
   }
 };
 
+getByPhone = async (req, res, next) => {
+  try {
+    const user = await this.userService.getByPhone(req.params.phone);
+
+    if (!user) {
+      return res.fail("User not found", statusCode.NOT_FOUND);
+    }
+
+    res.success("User fetched", user);
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+updateResetPhoneOtp = async (req, res, next) => {
+  try {
+    const { phone, hash, expiry } = req.body;
+
+    const user = await this.userService.updateResetPhoneOtp({
+      phone,
+      hash,
+      expiry
+    });
+
+    res.success("Reset OTP updated", user);
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+resetPasswordByPhone = async (req, res, next) => {
+  try {
+    const user = await this.userService.resetPasswordByPhone(req.body);
+
+    if (!user) {
+      return res.fail("User not found", 404);
+    }
+
+    res.success("Password reset successful", user);
+  } catch (err) {
+    next(err);
+  }
+};
+
 }

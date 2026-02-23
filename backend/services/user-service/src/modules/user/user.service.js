@@ -78,6 +78,41 @@ async updateOtp({ email, emailOtpHash, phoneOtpHash, otpExpiry }) {
   );
 }
 
+async getByPhone(phone) {
+  return USER_MODEL.findOne({ phone }).select("+password");
+}
+
+async updateResetPhoneOtp({ phone, hash, expiry }) {
+  return USER_MODEL.findOneAndUpdate(
+    { phone },
+    {
+      resetPhoneOtpHash: hash,
+      resetPhoneOtpExpiry: expiry
+    },
+    { new: true }
+  );
+}
+
+async resetPasswordByPhone({ phone, password }) {
+  const user = await USER_MODEL.findOneAndUpdate(
+    { phone },
+    {
+      password,
+      resetPhoneOtpHash: null,
+      resetPhoneOtpExpiry: null
+    },
+    { new: true }
+  );
+
+  if (!user) {
+    throw Object.assign(new Error("User not found"), {
+      statusCode: 404
+    });
+  }
+
+  return user;
+}
+
 }
 
 export default new UserService();

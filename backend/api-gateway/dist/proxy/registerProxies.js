@@ -15,9 +15,8 @@ export function registerProxies(app) {
             target,
             changeOrigin: true,
             logLevel: "debug",
-            headers: {
-                "x-internal-secret": process.env.INTERNAL_SERVICE_SECRET,
-            },
+            // Remove internal secret from gateway
+            // Internal headers should only be added in service-to-service calls
             pathRewrite: (path) => `/api/v1/${service}${path.replace(`/api/v1/${service}`, "")}`,
             onProxyReq(proxyReq, req) {
                 if (req.body && ["POST", "PUT", "PATCH"].includes(req.method)) {
