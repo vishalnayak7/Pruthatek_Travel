@@ -9,7 +9,7 @@ import { responseFormatter } from './middlewares/default/responseFormater.js';
 import connectDB from './config/db.js';
 
 import userRoute from './modules/user/user.routes.js';
-
+import corporateRoute from './modules/corporate/corporate.routes.js'
 
 import compression from 'compression';
 
@@ -31,6 +31,7 @@ app.get('/', (req, res) => {
 })
 
 app.use('/api/v1/user', userRoute);
+app.use("/api/v1/user/corporate", corporateRoute);
 
 app.use(notFound);
 app.use(errorHandler);
