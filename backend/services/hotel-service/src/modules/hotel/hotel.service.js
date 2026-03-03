@@ -86,6 +86,51 @@ images:
   return offersResponse.data.data || [];
 }
 
+async getHotelById(hotelId) {
+  try {
+    const token = await getAmadeusToken();
+
+    const { data } = await axios.get(
+      `${process.env.AMADEUS_BASE_URL}/v1/reference-data/locations/hotels/by-hotels`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { hotelIds: hotelId },
+      }
+    );
+
+    const hotel = data.data?.[0];
+    if (!hotel) throw Object.assign(new Error("Hotel not found"), { status: 404 });
+
+    const images =
+      (await getHotelImages({
+        hotelName: hotel.name,
+        city: hotel.address?.cityName,
+        limit: 8,
+      })) || [];
+
+    return {
+      hotelId: hotel.hotelId,
+      name: hotel.name,
+      rating: hotel.rating || null,
+      cityName: hotel.address?.cityName || null,
+      countryCode: hotel.address?.countryCode || null,
+      location: hotel.geoCode || null,
+      address: hotel.address || null,
+      amenities: hotel.amenities || [],
+      contact: hotel.contact || null,
+      images,
+      source: "AMADEUS",
+    };
+
+  } catch (error) {
+    const isNotFound = error.response?.status === 400;
+    throw Object.assign(
+      new Error(isNotFound ? "Hotel not found" : "Hotel provider error"),
+      { status: isNotFound ? 404 : error.response?.status || 500 }
+    );
+  }
+}
+
 }
 
 export default new HotelService();

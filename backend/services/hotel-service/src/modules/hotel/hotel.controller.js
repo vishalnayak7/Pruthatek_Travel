@@ -50,4 +50,20 @@ export default class HotelController {
   }
 };
 
+getById = async (req, res, next) => {
+  try {
+    const { hotelId } = req.params;
+
+    if (!hotelId) {
+      return res.fail("hotelId is required", null, statusCode.BAD_REQUEST);
+    }
+
+    const hotel = await this.hotelService.getHotelById(hotelId);
+
+    return res.success("Hotel fetched successfully", hotel, statusCode.OK);
+  } catch (err) {
+    next(err);
+  }
+};
+
 }

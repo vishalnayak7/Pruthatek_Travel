@@ -1,15 +1,15 @@
 import rateLimit from 'express-rate-limit';
 
 const rateLimiter = ({
-     windowMs = 15 * 60 * 1000, // default: 15 mins
-     max = 100,                // default: 100 requests per window
+     windowMs = 15 * 60 * 1000, 
+     max = 100,                
      message = 'Too many requests, please try again later.',
 } = {}) => {
      return rateLimit({
           windowMs,
           max,
-          standardHeaders: true, // ✅ Add RateLimit headers
-          legacyHeaders: false,  // ❌ Disable X-RateLimit headers
+          standardHeaders: true, 
+          legacyHeaders: false,  
           message: {
                success: false,
                message,
