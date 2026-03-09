@@ -9,6 +9,7 @@ import { responseFormatter } from './middlewares/default/responseFormater.js';
 import connectDB from './config/db.js';
 
 import profileRoute from './modules/profile/profile.routes.js';
+import cotravellerRoute from './modules/cotraveller/cotraveller.routes.js';
 
 import compression from 'compression';
 
@@ -30,6 +31,7 @@ app.get('/', (req, res) => {
 })
 
 app.use('/api/v1/profile', profileRoute);
+app.use('/api/v1/profile/co-traveller', cotravellerRoute);
 
 app.use(notFound);
 app.use(errorHandler);
