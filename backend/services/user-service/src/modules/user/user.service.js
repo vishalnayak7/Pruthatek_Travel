@@ -113,6 +113,14 @@ async resetPasswordByPhone({ phone, password }) {
   return user;
 }
 
+async linkGoogle({ email, googleId, provider }) {
+  return USER_MODEL.findOneAndUpdate(
+    { email },
+    { googleId, provider },
+    { new: true }
+  );
+}
+
 }
 
 export default new UserService();

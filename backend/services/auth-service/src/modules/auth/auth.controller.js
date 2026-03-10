@@ -146,4 +146,33 @@ resetPassword = async (req, res, next) => {
   }
 };
 
+googleSignIn = async (req, res, next) => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      return res.status(400).json({
+        success: false,
+        message: "ID Token is required"
+      });
+    }
+
+    const result = await this.authService.googleSignIn({ idToken });
+
+    res.status(200).json({
+      success: true,
+      message: "Google Sign-In successful",
+      data: result
+    });
+
+  } catch (err) {
+    console.error("Google Sign-In error:", err.message);
+
+    res.status(err.statusCode || 500).json({
+      success: false,
+      message: err.message || "Internal Server Error"
+    });
+  }
+};
+
 }

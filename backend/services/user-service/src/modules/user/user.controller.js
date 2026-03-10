@@ -120,4 +120,13 @@ resetPasswordByPhone = async (req, res, next) => {
   }
 };
 
+linkGoogle = async (req, res, next) => {
+  try {
+    const user = await this.userService.linkGoogle(req.body);
+    res.success("Google linked", user);
+  } catch (err) {
+    next(err);
+  }
+};
+
 }

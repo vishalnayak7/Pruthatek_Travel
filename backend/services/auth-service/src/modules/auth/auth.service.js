@@ -7,6 +7,8 @@ import { sendEmailOtp } from "../../utils/email.js";
 import { sendSmsOtp } from "../../utils/sms.js";
 import crypto from "crypto";
 
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
 const hashOtp = (otp) =>
   crypto.createHash("sha256").update(otp).digest("hex");
 
@@ -363,6 +365,90 @@ async resetPassword({ phone, otp, newPassword }) {
   return { message: "Password reset successfully" };
 }
 
+async googleSignIn({ idToken }) {
+  if (!idToken) {
+    const err = new Error("Google ID token required");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // Verify Google token
+  let payload;
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    payload = ticket.getPayload();
+  } catch (err) {
+    console.error("Error verifying Google ID token:", err.message);
+    const error = new Error("Invalid Google ID token");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  const email = payload.email;
+  const name = payload.name;
+  const googleId = payload.sub;
+
+  const internalHeaders = {
+    headers: {
+      "x-internal-secret": process.env.INTERNAL_SERVICE_SECRET
+    }
+  };
+
+  // Check if user exists
+  let user;
+  try {
+    const res = await axios.get(`${process.env.USER_SERVICE_URL}/api/v1/user/email/${email}`, internalHeaders);
+    user = res.data.data;
+  } catch (err) {
+    console.warn("User not found, will create new user:", err.response?.data?.message || err.message);
+    user = null;
+  }
+
+  // If user exists but not linked with Google
+if (user && !user.googleId) {
+  await axios.patch(
+    `${process.env.USER_SERVICE_URL}/api/v1/user/link-google`,
+    { email, googleId, provider: "google" },
+    internalHeaders
+  );
+
+  user.googleId = googleId;
+  user.provider = "google";
+}
+
+  // Create user if doesn't exist
+  if (!user) {
+    try {
+      const res = await axios.post(`${process.env.USER_SERVICE_URL}/api/v1/user/create`, {
+        email,
+        status: "ACTIVE",       // Google users are active by default
+        emailVerified: true,
+        phoneVerified: true,
+        googleId,               
+        provider: "google"      
+      }, internalHeaders);
+
+      user = res.data.data;
+    } catch (err) {
+      console.error("Error creating user:", err.response?.data || err.message);
+      const error = new Error("Failed to create user via Google Sign-In");
+      error.statusCode = 500;
+      throw error;
+    }
+  }
+
+  // Generate JWT
+  const token = jwt.sign(
+    { id: user._id, provider: user.provider },
+    process.env.JWT_SECRET,
+    { expiresIn: "1d" }
+  );
+
+  return { token };
+}
 }
 
 export default new AuthService();

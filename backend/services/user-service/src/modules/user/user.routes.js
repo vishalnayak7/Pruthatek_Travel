@@ -19,4 +19,6 @@ router.get("/phone/:phone", internalAuth, userController.getByPhone);
 router.patch("/update-reset-phone-otp", internalAuth, userController.updateResetPhoneOtp);
 router.patch("/reset-password-phone", internalAuth, userController.resetPasswordByPhone);
 
+router.patch("/link-google", internalAuth, userController.linkGoogle);
+
 export default router;
