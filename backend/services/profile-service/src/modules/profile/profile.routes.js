@@ -15,5 +15,6 @@ router.patch("/travel-preferences",authenticate, profileController.updateTravelP
 router.post("/frequent-flyer", authenticate, profileController.addFrequentFlyer);
 router.delete("/frequent-flyer/:id", authenticate, profileController.deleteFrequentFlyer);
 
+router.post("/logout", authenticate, profileController.logout);
 
 export default router;

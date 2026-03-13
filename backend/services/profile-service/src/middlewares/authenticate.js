@@ -1,25 +1,52 @@
-import jwt from "jsonwebtoken";
+// import jwt from "jsonwebtoken";
 
-const authenticate = (req, res, next) => {
+// const authenticate = (req, res, next) => {
+//   try {
+//     const authHeader = req.headers.authorization;
+//     if (!authHeader?.startsWith("Bearer ")) {
+//       return res.status(401).json({
+//         success: false,
+//         message: "Unauthorized"
+//       });
+//     }
+
+//     const token = authHeader.split(" ")[1];
+//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+//     req.user = decoded; // { id, role }
+//     next();
+//   } catch (err) {
+//     return res.status(401).json({
+//       success: false,
+//       message: "Invalid or expired token"
+//     });
+//   }
+// };
+
+// export default authenticate;
+import jwt from "jsonwebtoken";
+import { LOGOUT_TOKEN_MODEL } from "../modules/profile/logoutToken.model.js";
+
+const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith("Bearer ")) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized"
-      });
+      return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
     const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+    // Check if token is blacklisted
+    const isLoggedOut = await LOGOUT_TOKEN_MODEL.findOne({ token });
+    if (isLoggedOut) {
+      return res.status(401).json({ success: false, message: "Token invalidated. Please login again." });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded; // { id, role }
     next();
   } catch (err) {
-    return res.status(401).json({
-      success: false,
-      message: "Invalid or expired token"
-    });
+    return res.status(401).json({ success: false, message: "Invalid or expired token" });
   }
 };
 
