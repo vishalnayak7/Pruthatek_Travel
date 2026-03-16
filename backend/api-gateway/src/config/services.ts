@@ -5,6 +5,7 @@ export interface ServicesConfig {
   profile?: string;
   contact?: string;
   flight?: string;
+  wishlist?: string;
 }
 
 export const SERVICES: ServicesConfig = {
@@ -14,4 +15,5 @@ export const SERVICES: ServicesConfig = {
   profile: process.env.PROFILE_SERVICE_URL,
   contact: process.env.CONTACT_SERVICE_URL,
   flight: process.env.FLIGHT_SERVICE_URL,
+  wishlist: process.env.WISHLIST_SERVICE_URL,
 };
