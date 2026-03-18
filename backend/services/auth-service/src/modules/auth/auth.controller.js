@@ -1,5 +1,6 @@
 import AuthService from "./auth.service.js";
 import { statusCode } from "../../utils/constants/statusCode.js";
+import jwt from "jsonwebtoken";
 
 export default class AuthController {
   constructor() {
@@ -175,4 +176,51 @@ googleSignIn = async (req, res, next) => {
   }
 };
 
+logout = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader?.startsWith("Bearer ")) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized"
+      });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    // Decode token HERE (instead of req.user)
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const expiresAt = decoded.exp * 1000;
+
+    await this.authService.logout(token, expiresAt);
+
+    res.success("Logout successful", statusCode.OK);
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+validateToken = async (req, res, next) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({
+        message: "Token is required"
+      });
+    }
+
+    const result = await this.authService.validateToken(token);
+
+    return res.status(200).json({
+      success: true,
+      data: result
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 }

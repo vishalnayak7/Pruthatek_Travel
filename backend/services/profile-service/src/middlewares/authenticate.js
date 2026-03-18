@@ -24,30 +24,45 @@
 // };
 
 // export default authenticate;
-import jwt from "jsonwebtoken";
-import { LOGOUT_TOKEN_MODEL } from "../modules/profile/logoutToken.model.js";
+// import jwt from "jsonwebtoken";
+// import { LOGOUT_TOKEN_MODEL } from "../modules/profile/logoutToken.model.js";
 
-const authenticate = async (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith("Bearer ")) {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
+// const authenticate = async (req, res, next) => {
+//   try {
+//     const authHeader = req.headers.authorization;
+//     if (!authHeader?.startsWith("Bearer ")) {
+//       return res.status(401).json({ success: false, message: "Unauthorized" });
+//     }
 
-    const token = authHeader.split(" ")[1];
+//     const token = authHeader.split(" ")[1];
 
-    // Check if token is blacklisted
-    const isLoggedOut = await LOGOUT_TOKEN_MODEL.findOne({ token });
-    if (isLoggedOut) {
-      return res.status(401).json({ success: false, message: "Token invalidated. Please login again." });
-    }
+//     // Check if token is blacklisted
+//     const isLoggedOut = await LOGOUT_TOKEN_MODEL.findOne({ token });
+//     if (isLoggedOut) {
+//       return res.status(401).json({ success: false, message: "Token invalidated. Please login again." });
+//     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // { id, role }
-    next();
-  } catch (err) {
-    return res.status(401).json({ success: false, message: "Invalid or expired token" });
+//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+//     req.user = decoded; // { id, role }
+//     next();
+//   } catch (err) {
+//     return res.status(401).json({ success: false, message: "Invalid or expired token" });
+//   }
+// };
+
+// export default authenticate;
+const authenticate = (req, res, next) => {
+  const userId = req.headers["x-user-id"];
+
+  if (!userId) {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized"
+    });
   }
+
+  req.user = { id: userId };
+  next();
 };
 
 export default authenticate;

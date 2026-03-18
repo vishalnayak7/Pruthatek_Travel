@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import AuthController from './auth.controller.js';
+import authenticate from '../../middlewares/authenticate.js';
 
 const router = Router();
 const authController = new AuthController();
@@ -14,5 +15,8 @@ router.post("/forgot-password", authController.forgotPassword);
 router.post("/reset-password", authController.resetPassword);
 
 router.post("/google", authController.googleSignIn);
+
+router.post("/logout", authenticate, authController.logout);
+router.post("/validate-token", authController.validateToken.bind(authController));
 
 export default router;

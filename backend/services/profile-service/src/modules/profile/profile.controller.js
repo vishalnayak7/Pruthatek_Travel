@@ -102,25 +102,4 @@ export default class ProfileController {
   }
 };
 
-logout = async (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith("Bearer ")) {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
-
-    const token = authHeader.split(" ")[1];
-
-    // JWT expiry is in seconds, multiply by 1000 to get milliseconds
-    const decoded = req.user; // set by authenticate middleware
-    const expiresAt = decoded.exp * 1000;
-
-    await this.profileService.logout(token, expiresAt);
-    res.success("Logout successful", statusCode.OK);
-
-  } catch (err) {
-    next(err);
-  }
-};
-
 }

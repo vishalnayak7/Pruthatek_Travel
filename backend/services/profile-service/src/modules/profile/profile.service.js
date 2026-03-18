@@ -1,5 +1,4 @@
 import { PROFILE_MODEL } from "./profile.model.js";
-import { LOGOUT_TOKEN_MODEL } from "./logoutToken.model.js";
 
 class ProfileService {
 
@@ -82,13 +81,6 @@ class ProfileService {
 
   return result;
 }
-
- async logout(token, expiresAt) {
-    return LOGOUT_TOKEN_MODEL.create({
-      token,
-      expiresAt: new Date(expiresAt)
-    });
-  }
 
 }
 

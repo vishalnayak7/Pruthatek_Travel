@@ -6,6 +6,7 @@ import { generateOtp } from "../../utils/otp.js";
 import { sendEmailOtp } from "../../utils/email.js";
 import { sendSmsOtp } from "../../utils/sms.js";
 import crypto from "crypto";
+import { LOGOUT_TOKEN_MODEL } from "./logoutToken.model.js";
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -448,6 +449,29 @@ if (user && !user.googleId) {
   );
 
   return { token };
+}
+
+async logout(token, expiresAt) {
+    return LOGOUT_TOKEN_MODEL.create({
+      token,
+      expiresAt: new Date(expiresAt)
+    });
+  };
+
+  async validateToken(token) {
+  // Check blacklist
+  const blacklisted = await LOGOUT_TOKEN_MODEL.findOne({ token });
+
+  if (blacklisted) {
+    throw new Error("Token expired");
+  }
+
+  // Verify JWT
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+  return {
+    userId: decoded.id
+  };
 }
 }
 
