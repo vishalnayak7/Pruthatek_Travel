@@ -7,7 +7,7 @@ const client = twilio(
 
 export const sendSmsOtp = async (phone, otp) => {
   await client.messages.create({
-    body: `Your OTP is ${otp}`,
+    body: `Your Traguin Travel OTP is ${otp}. It expires in 10 minutes. Never share this code with anyone.`,
     from: process.env.TWILIO_PHONE_NUMBER,
     to: `+91${phone}`
   });
