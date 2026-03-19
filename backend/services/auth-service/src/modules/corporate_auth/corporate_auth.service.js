@@ -338,6 +338,61 @@ async resetPassword({ email, otp, newPassword }) {
 
   return { message: "Password reset successfully" };
 }
+
+async resendOtp({ email }) {
+  const headers = this.internalHeaders();
+
+  let corporate;
+
+  try {
+    const { data } = await axios.get(
+      `${process.env.USER_SERVICE_URL}/api/v1/user/corporate/email/${email}`,
+      headers
+    );
+    corporate = data.data;
+  } catch (err) {
+    if (err.response?.status === 404) {
+      throw Object.assign(new Error("Corporate not found"), {
+        statusCode: 404
+      });
+    }
+    throw err;
+  }
+
+  // Already active (highest priority)
+if (corporate.status === "ACTIVE") {
+  throw Object.assign(
+    new Error("Account already active"),
+    { statusCode: 400 }
+  );
+}
+
+// Already verified (but not active)
+if (corporate.emailVerified) {
+  throw Object.assign(
+    new Error("Email already verified"),
+    { statusCode: 400 }
+  );
+}
+
+  // Generate new OTP
+  const { otp, hash } = generateOtp();
+
+  // Update OTP in user-service
+  await axios.patch(
+    `${process.env.USER_SERVICE_URL}/api/v1/user/corporate/update-otp`,
+    {
+      email,
+      emailOtpHash: hash,
+      otpExpiry: new Date(Date.now() + 10 * 60 * 1000)
+    },
+    headers
+  );
+
+  await sendEmailOtp(email, otp);
+
+  return { message: "OTP resent successfully" };
+}
 }
 
 export default new Corporate_authService();

@@ -11,6 +11,7 @@ router.post("/verify-email-otp", corporate_authController.verifyEmailOtp);
 router.patch("/complete-profile", corporate_authController.completeProfile);
 router.patch("/set-password", corporate_authController.setPassword);
 router.post("/login", corporate_authController.login);
+router.post("/resend-otp", corporate_authController.resendOtp);
 
 router.post("/forgot-password", corporate_authController.forgotPassword);
 router.post("/reset-password", corporate_authController.resetPassword);
