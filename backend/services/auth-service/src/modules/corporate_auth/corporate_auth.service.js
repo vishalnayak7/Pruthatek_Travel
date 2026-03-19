@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { generateOtp } from "../../utils/otp.js";
 import { sendEmailOtp } from "../../utils/email.js";
+import { sendResetPasswordOtp } from "../../utils/sendResetOtp.js";
 
 const hashOtp = (otp) =>
   crypto.createHash("sha256").update(otp).digest("hex");
@@ -197,35 +198,6 @@ async setPassword({ email, password }) {
   return { message: "Password set successfully" };
 }
 
-  // async login({ email, password }) {
-
-  //   const headers = this.internalHeaders();
-
-  //   const { data } = await axios.get(
-  //     `${process.env.USER_SERVICE_URL}/api/v1/user/corporate/email/${email}`,
-  //     headers
-  //   );
-
-  //   const corporate = data.data;
-
-  //   if (!corporate || !corporate.password) {
-  //     throw Object.assign(new Error("Invalid credentials"), { statusCode: 401 });
-  //   }
-
-  //   const isMatch = await bcrypt.compare(password, corporate.password);
-
-  //   if (!isMatch) {
-  //     throw Object.assign(new Error("Invalid credentials"), { statusCode: 401 });
-  //   }
-
-  //   const token = jwt.sign(
-  //     { id: corporate._id, accountType: "CORPORATE" },
-  //     process.env.JWT_SECRET,
-  //     { expiresIn: "1d" }
-  //   );
-
-  //   return { token };
-  // }
   async login({ email, password }) {
 
   const headers = this.internalHeaders();
@@ -306,7 +278,8 @@ async setPassword({ email, password }) {
     headers
   );
 
-  await sendEmailOtp(email, otp);
+  // await sendEmailOtp(email, otp);
+  await sendResetPasswordOtp(email, otp);
 
   return { message: "Reset OTP sent to email" };
 }
