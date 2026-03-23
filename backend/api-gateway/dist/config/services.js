@@ -6,5 +6,6 @@ export const SERVICES = {
     contact: process.env.CONTACT_SERVICE_URL,
     flight: process.env.FLIGHT_SERVICE_URL,
     wishlist: process.env.WISHLIST_SERVICE_URL,
+    bus: process.env.BUS_SERVICE_URL,
 };
 //# sourceMappingURL=services.js.map

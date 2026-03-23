@@ -6,6 +6,7 @@ export interface ServicesConfig {
   contact?: string;
   flight?: string;
   wishlist?: string;
+  bus?: string;
 }
 
 export const SERVICES: ServicesConfig = {
@@ -16,4 +17,5 @@ export const SERVICES: ServicesConfig = {
   contact: process.env.CONTACT_SERVICE_URL,
   flight: process.env.FLIGHT_SERVICE_URL,
   wishlist: process.env.WISHLIST_SERVICE_URL,
+  bus: process.env.BUS_SERVICE_URL,
 };
