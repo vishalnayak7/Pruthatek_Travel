@@ -20,7 +20,9 @@ app.use(cors());
 app.use(compression());
 
 app.use(responseFormatter);
-app.use(rateLimiter());
+
+app.use("/api/v1/hotel", rateLimiter({ max: 50 }));
+app.use(rateLimiter({ max: 200 }));
 
 app.get("/", (req: Request, res: Response) => {
   res.send("API Gateway is running 🚀");

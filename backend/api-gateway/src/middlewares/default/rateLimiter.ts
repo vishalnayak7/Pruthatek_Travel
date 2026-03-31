@@ -16,6 +16,7 @@ const rateLimiter = ({
     max,
     standardHeaders: true,
     legacyHeaders: false,
+    statusCode: 429,
     message: {
       success: false,
       message,
